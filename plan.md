@@ -88,10 +88,44 @@ To fulfill the "Free & Open Source" requirement with "Max Achievable Quality", w
 └── ... (other docs)
 ```
 
-## 5. Timeline & Steps
-1.  **Day 1**: Environment setup, install dependencies, and setup Ollama/LLaVA.
-2.  **Day 1**: Build the ingestion pipeline (PDF parsing & Image extraction).
-3.  **Day 2**: Implement CLIP embeddings and ChromaDB indexing.
-4.  **Day 2**: Build the retrieval system.
-5.  **Day 3**: Integrate LLaVA for generation and build the FastAPI layer.
-6.  **Day 3**: Testing, evaluation notebook, and final documentation.
+## 5. Implementation Phases (Total 8)
+
+### Phase 1: Environment & Project Scaffolding
+- Initialize Python environment and `requirements.txt`.
+- Set up directory structure for source code, data, and tests.
+- Configure environment variables (`.env`).
+
+### Phase 2: PDF Parsing & Asset Extraction
+- Implement logic to iterate through PDFs.
+- Extract high-quality text, tables, and embedded images.
+- Use `unstructured` for layout-aware partitioning.
+
+### Phase 3: OCR & Standalone Image Ingestion
+- Implement OCR pipeline using `EasyOCR`.
+- Process standalone PNG/JPEG images.
+- Map extracted visual data back to source document and page metadata.
+
+### Phase 4: Multimodal Embedding Strategy
+- Load CLIP (`contrastive-language-image-pretraining`) models.
+- Implement specialized encoding for text, table summaries, and raw images.
+- Ensure all modalities share the same semantic vector space.
+
+### Phase 5: Vector Storage & Persistence
+- Initialize **ChromaDB** with persistence.
+- Design metadata schema for traceability (doc_id, page, content_type, file_path).
+- Implement indexing logic for efficient bulk ingestion.
+
+### Phase 6: Cross-Modal Retrieval & Ranking Engine
+- Build the core retriever to handle text-to-multimodal queries.
+- Implement results fusion (combining text and image scores).
+- Ensure references to physical image files are preserved for the generation stage.
+
+### Phase 7: Local VLM Integration & Visual Grounding
+- Integrate **LLaVA v1.5** via Ollama API.
+- Design visual-grounding prompts that require the model to use retrieved images.
+- Implement response formatting that cites specific page numbers and visual elements.
+
+### Phase 8: REST API, Evaluation & Documentation
+- Develop **FastAPI** endpoints (`/query`, `/ingest`).
+- Create an evaluation notebook to measure retrieval performance (Hit Rate, MRR).
+- Produce `ARCHITECTURE.md` and complete `README.md`.
