@@ -1,18 +1,19 @@
-fastapi==0.109.0
-uvicorn==0.27.0
-pymupdf==1.23.21
-unstructured[pdf]==0.12.4
-easyocr==1.7.1
-sentence-transformers==2.5.1
-chromadb==0.4.22
-pillow==10.2.0
-python-dotenv==1.0.1
-requests==2.31.0
-numpy==1.26.4
-pydantic==2.6.1
-python-multipart==0.0.9
-torch==2.2.0
-torchvision==0.17.0
-pytest==8.0.0
-# Optional: Ollama Python library for easier integration if not using direct requests
-# ollama==0.1.7
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pymupdf>=1.23.21
+unstructured[pdf]>=0.15.10
+easyocr>=1.7.1
+sentence-transformers>=2.5.1
+chromadb>=0.4.22
+pillow>=10.2.0
+python-dotenv>=1.0.1
+requests>=2.31.0
+numpy>=1.26.4
+pydantic>=2.6.1
+python-multipart>=0.0.9
+torch>=2.2.0
+torchvision>=0.17.0
+pytest>=8.0.0
+# unstructured-inference and layoutparser are often required by unstructured
+# unstructured-inference>=0.7.36
+# layoutparser[layoutmodel,tesseract]
