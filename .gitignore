@@ -1,3 +1,5 @@
 venv/
 plan.md
 task-requirements.txt
+
+.env
