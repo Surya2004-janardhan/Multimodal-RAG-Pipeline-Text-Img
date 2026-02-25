@@ -1,7 +1,24 @@
 [project]
 name = "build-a-multimodal-rag-system-for-document-and-image-analysis"
 version = "0.1.0"
-description = "Add your description here"
+description = "Multimodal RAG System for Document and Image Analysis"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "chromadb>=0.4.22",
+    "easyocr>=1.7.1",
+    "fastapi>=0.109.0",
+    "numpy>=1.26.4",
+    "pillow>=10.2.0",
+    "pydantic>=2.6.1",
+    "pymupdf>=1.23.21",
+    "pytest>=8.0.0",
+    "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.9",
+    "requests>=2.31.0",
+    "sentence-transformers>=2.5.1",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "unstructured[pdf]>=0.15.10",
+    "uvicorn>=0.27.0",
+]
