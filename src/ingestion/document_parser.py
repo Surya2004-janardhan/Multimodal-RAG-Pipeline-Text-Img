@@ -35,20 +35,18 @@ class PDFParser:
         
         try:
             # 1. Layout-aware partitioning (Text and Tables)
-            # strategy="hi_res" is high-quality and uses models to detect tables.
+            # strategy="auto" will use "fast" (no OCR) if text is detectable, 
+            # or "hi_res" (OCR) only if needed.
             elements = partition_pdf(
                 filename=pdf_path,
-                strategy="hi_res",
+                strategy="auto",
                 infer_table_structure=True,
-                extract_images_in_pdf=False, # Handled separately via PyMuPDF
+                extract_images_in_pdf=False,
             )
 
             for i, element in enumerate(elements):
                 element_type = element.category.lower()
-                # Unstructured page_number starts at 1
                 page_number = element.metadata.page_number if element.metadata.page_number else 1
-                
-                # Determine content type (table or text)
                 content_type = "table" if element_type == "table" else "text"
                 
                 chunks.append({
@@ -63,9 +61,11 @@ class PDFParser:
                         "element_id": f"{doc_id}_el_{i}"
                     }
                 })
+        except Exception as e:
+            print(f"[!] Unstructured parsing failed for {doc_id} (Text/Tables might be missing): {e}")
 
-            # 2. Extract raw images using PyMuPDF
-            # This is more reliable for retrieving original image files for VLM context.
+        try:
+            # 2. Extract raw images using PyMuPDF (No Tesseract needed)
             doc = fitz.open(pdf_path)
             for page_num in range(len(doc)):
                 page = doc[page_num]
@@ -77,7 +77,6 @@ class PDFParser:
                     image_bytes = base_image["image"]
                     image_ext = base_image["ext"]
                     
-                    # Generate unique hash for the image
                     img_hash = hashlib.md5(image_bytes).hexdigest()
                     img_filename = f"{doc_id.replace('.', '_')}_p{page_num+1}_img{img_index}_{img_hash[:8]}.{image_ext}"
                     img_path = self.image_dir / img_filename
@@ -98,13 +97,14 @@ class PDFParser:
                             "image_path": str(img_path)
                         }
                     })
-            
             doc.close()
+        except Exception as e:
+            print(f"[!] Image extraction failed for {doc_id}: {e}")
+
+        if chunks:
             print(f"[+] Successfully extracted {len(chunks)} elements from {doc_id}")
             return chunks
-            
-        except Exception as e:
-            print(f"[!] Error parsing PDF {pdf_path}: {e}")
+        else:
             return []
 
 if __name__ == "__main__":
