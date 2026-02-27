@@ -1,6 +1,9 @@
 import os
 import fitz  # PyMuPDF
 import hashlib
+import numpy as np
+import io
+from PIL import Image
 from typing import List, Dict, Any
 from pathlib import Path
 from dotenv import load_dotenv
@@ -74,8 +77,28 @@ class PDFParser:
                     xref = img[0]
                     base_image = doc.extract_image(xref)
                     image_bytes = base_image["image"]
-                    image_ext = base_image["ext"]
+                    image_ext = base_image["ext"].lower()
                     
+                    # 1. Skip very small files (usually logos, icons, spacing elements)
+                    if len(image_bytes) < 10240: 
+                        continue
+                        
+                    # 2. Only accept standard formats
+                    if image_ext not in ["png", "jpg", "jpeg"]:
+                        continue
+                    
+                    # 3. Filter out "black" or near-empty images (common for masks)
+                    try:
+                        img_pil = Image.open(io.BytesIO(image_bytes))
+                        # Convert to grayscale to check brightness
+                        grayscale = img_pil.convert("L")
+                        mean_brightness = np.mean(np.array(grayscale))
+                        if mean_brightness < 2 or mean_brightness > 253: # Skip pure black or pure white
+                            continue
+                    except Exception:
+                        continue # Skip if Pillow can't open it
+                        
+                    # Generate unique hash for the image
                     img_hash = hashlib.md5(image_bytes).hexdigest()
                     img_filename = f"{doc_id.replace('.', '_')}_p{page_num+1}_img{img_index}_{img_hash[:8]}.{image_ext}"
                     img_path = self.image_dir / img_filename
@@ -83,6 +106,8 @@ class PDFParser:
                     if not img_path.exists():
                         with open(img_path, "wb") as f:
                             f.write(image_bytes)
+                    
+                    print(f"  - Extracted valid image: {img_filename} (Size: {len(image_bytes)//1024}KB, Brightness: {mean_brightness:.1f})", flush=True)
                     
                     chunks.append({
                         "doc_id": doc_id,

@@ -32,22 +32,40 @@ class ChromaManager:
 
     def add_embeddings(self, 
                        ids: List[str], 
-                       embeddings: List[List[float]], 
+                       embeddings: List[Any], 
                        metadatas: List[Dict[str, Any]], 
                        documents: List[str]):
         """
         Adds embeddings and metadata to the collection.
         """
+        if not ids:
+            return
+            
         try:
+            # Check client heartbeat 
+            self.client.heartbeat()
+            
+            # Ensure embeddings are standard Python floats and not nested
+            casted_embeddings = []
+            for emb in embeddings:
+                # If CLIP returns [[...]] (2D), flatten it to [...] (1D)
+                if isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], list):
+                    emb = emb[0]
+                
+                casted_embeddings.append([float(v) for v in emb])
+            
+            print(f"[*] Attempting to add {len(ids)} items to ChromaDB...", flush=True)
             self.collection.add(
                 ids=ids,
-                embeddings=embeddings,
+                embeddings=casted_embeddings,
                 metadatas=metadatas,
                 documents=documents
             )
-            print(f"[+] Successfully added {len(ids)} items to ChromaDB.")
+            print(f"[+] Successfully added {len(ids)} items. New total count: {self.get_count()}", flush=True)
         except Exception as e:
-            print(f"[!] Error adding items to ChromaDB: {e}")
+            print(f"[!] Critical error in ChromaManager.add_embeddings: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
 
     def query(self, 
               query_embeddings: List[List[float]], 

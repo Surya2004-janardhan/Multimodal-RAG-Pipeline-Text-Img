@@ -84,11 +84,12 @@ def process_single_file(file_path: str):
     all_metadatas = []
     all_documents = []
 
-    print(f"[*] Encoding {len(chunks)} chunks for {os.path.basename(file_path)}...")
+    print(f"[*] Encoding {len(chunks)} chunks for {os.path.basename(file_path)}...", flush=True)
     
     # Generate embeddings
     for i, chunk in enumerate(chunks):
-        chunk_id = f"{chunk['doc_id']}_{chunk['type']}_{chunk['page']}_ch{i}_{hash(chunk['content'])}"
+        # Stable ID using file hash and index
+        chunk_id = f"{chunk['doc_id']}_{i}_{chunk['type']}_{chunk['page']}"
         
         # Determine content for embedding
         if chunk["type"] == "image":
@@ -104,18 +105,33 @@ def process_single_file(file_path: str):
         all_documents.append(doc_text)
         
         if (i + 1) % 50 == 0:
-            print(f"  - Encoded {i + 1}/{len(chunks)} chunks...")
+            print(f"  - Encoded {i + 1}/{len(chunks)} chunks...", flush=True)
 
-    # Final batch push to Chroma
-    vector_store.add_embeddings(
-        ids=all_ids,
-        embeddings=all_embeddings,
-        metadatas=all_metadatas,
-        documents=all_documents
-    )
-    print(f"[+] Finished indexing {os.path.basename(file_path)}")
+    # Final batch push to Chroma in smaller chunks of 50 to avoid timeouts/OOM
+    if all_ids:
+        batch_size = 50
+        print(f"[*] Pushing {len(all_ids)} items to ChromaDB for {os.path.basename(file_path)}...", flush=True)
+        for j in range(0, len(all_ids), batch_size):
+            end = min(j + batch_size, len(all_ids))
+            vector_store.add_embeddings(
+                ids=all_ids[j:end],
+                embeddings=all_embeddings[j:end],
+                metadatas=all_metadatas[j:end],
+                documents=all_documents[j:end]
+            )
+        print(f"[+] Finished indexing {os.path.basename(file_path)}", flush=True)
+    else:
+        print(f"[!] No content found to index for {os.path.basename(file_path)}", flush=True)
 
 # --- Endpoints ---
+
+@app.get("/status")
+def get_status():
+    return {
+        "status": "Ready",
+        "document_count": vector_store.get_count(),
+        "collection_name": "multimodal_rag"
+    }
 
 @app.get("/")
 def read_root():
