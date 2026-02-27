@@ -3,3 +3,8 @@ plan.md
 task-requirements.txt
 
 .env
+
+DATA/
+
+gitignore is case senstive
+
