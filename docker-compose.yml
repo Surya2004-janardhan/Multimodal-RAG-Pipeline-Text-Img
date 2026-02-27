@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - VECTOR_DB_PATH=/app/data/chroma
+      - PROCESSED_DATA_PATH=/app/data/processed
+      - RAW_DATA_PATH=/app/sample_documents
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./sample_documents:/app/sample_documents
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  data:
