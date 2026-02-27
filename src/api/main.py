@@ -112,7 +112,7 @@ async def ingest_documents(background_tasks: BackgroundTasks):
     raw_path = os.getenv("RAW_DATA_PATH", "./sample_documents")
     files = glob.glob(os.path.join(raw_path, "*.*"))
     
-    valid_files = [f for f in files if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg'))]
+    valid_files = [f for f in files if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg', '.txt'))]
     
     if not valid_files:
         return {"status": "error", "message": f"No valid documents found in {raw_path}"}
