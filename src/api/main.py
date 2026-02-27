@@ -57,6 +57,23 @@ def process_single_file(file_path: str):
         processed = image_processor.process_image(file_path)
         if processed:
             chunks = [processed]
+    elif ext == ".txt":
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                chunks = [{
+                    "doc_id": os.path.basename(file_path),
+                    "page": 1,
+                    "type": "text",
+                    "content": content,
+                    "metadata": {
+                        "source": file_path,
+                        "page_number": 1,
+                        "content_type": "text"
+                    }
+                }]
+        except Exception as e:
+            print(f"[!] Error reading txt file {file_path}: {e}")
     
     if not chunks:
         return
