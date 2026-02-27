@@ -34,12 +34,11 @@ class PDFParser:
         print(f"[*] Processing document: {doc_id}")
         
         try:
-            # 1. Layout-aware partitioning (Text and Tables)
-            # strategy="auto" will use "fast" (no OCR) if text is detectable, 
-            # or "hi_res" (OCR) only if needed.
+            # strategy="fast" extracts text directly from the PDF stream.
+            # It completely bypasses the need for Tesseract OCR.
             elements = partition_pdf(
                 filename=pdf_path,
-                strategy="auto",
+                strategy="fast",
                 infer_table_structure=True,
                 extract_images_in_pdf=False,
             )

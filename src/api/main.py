@@ -78,9 +78,17 @@ def process_single_file(file_path: str):
     if not chunks:
         return
 
-    # Generate embeddings and push to Chroma
-    for chunk in chunks:
-        chunk_id = f"{chunk['doc_id']}_{chunk['type']}_{chunk['page']}_{hash(chunk['content'])}"
+    # Collect lists for batch addition
+    all_ids = []
+    all_embeddings = []
+    all_metadatas = []
+    all_documents = []
+
+    print(f"[*] Encoding {len(chunks)} chunks for {os.path.basename(file_path)}...")
+    
+    # Generate embeddings
+    for i, chunk in enumerate(chunks):
+        chunk_id = f"{chunk['doc_id']}_{chunk['type']}_{chunk['page']}_ch{i}_{hash(chunk['content'])}"
         
         # Determine content for embedding
         if chunk["type"] == "image":
@@ -90,12 +98,22 @@ def process_single_file(file_path: str):
             embedding = embedder.encode_text(chunk["content"]).tolist()
             doc_text = chunk["content"]
 
-        vector_store.add_embeddings(
-            ids=[chunk_id],
-            embeddings=[embedding],
-            metadatas=[chunk["metadata"]],
-            documents=[doc_text]
-        )
+        all_ids.append(chunk_id)
+        all_embeddings.append(embedding)
+        all_metadatas.append(chunk["metadata"])
+        all_documents.append(doc_text)
+        
+        if (i + 1) % 50 == 0:
+            print(f"  - Encoded {i + 1}/{len(chunks)} chunks...")
+
+    # Final batch push to Chroma
+    vector_store.add_embeddings(
+        ids=all_ids,
+        embeddings=all_embeddings,
+        metadatas=all_metadatas,
+        documents=all_documents
+    )
+    print(f"[+] Finished indexing {os.path.basename(file_path)}")
 
 # --- Endpoints ---
 
