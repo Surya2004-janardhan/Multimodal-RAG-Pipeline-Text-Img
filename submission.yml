@@ -1,0 +1,6 @@
+setup:
+  - uv venv
+  - .\venv\Scripts\activate
+  - uv pip install -r requirements.txt
+test:
+  - pytest tests/test_integrated.py
