@@ -12,45 +12,31 @@ class MultimodalRetriever:
 
     def retrieve(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """
-        Performs text-to-multimodal retrieval.
-        Returns a ranked list of relevant context items (text, tables, images).
+        Performs text-to-multimodal retrieval using LangChain's similarity search.
         """
         print(f"[*] Retrieving context for query: '{query}'")
         
         # 1. Encode the text query into the CLIP shared space
-        query_embedding = self.embedder.encode_text(query).tolist()
+        query_embedding = self.embedder.encode_text(query).cpu().detach().tolist()[0]
         
-        # 2. Query ChromaDB
-        # We query for the top results across all modalities stored in the single collection.
-        results = self.vector_store.query(
-            query_embeddings=query_embedding,
-            n_results=n_results
+        # 2. Query LangChain Chroma
+        # Using similarity_search_with_relevance_scores or similar
+        docs_with_scores = self.vector_store.vectorstore.similarity_search_with_relevance_scores(
+            query=query, # This will use the internal embedding_function if provided
+            k=n_results
         )
         
-        # 3. Format and Fuse Results
-        # ChromaDB results are returned as lists of lists. We flatten and format them.
+        # 3. Format Results
         formatted_results = []
-        
-        if not results or not results.get("ids"):
-            return []
-
-        ids = results["ids"][0]
-        metadatas = results["metadatas"][0]
-        documents = results["documents"][0]
-        distances = results["distances"][0]
-        
-        for i in range(len(ids)):
+        for doc, score in docs_with_scores:
             formatted_results.append({
-                "id": ids[i],
-                "content": documents[i],
-                "metadata": metadatas[i],
-                "score": 1.0 - distances[i]  # Convert distance to similarity score
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "score": score
             })
             
-        # Results are already ranked by ChromaDB based on similarity (distances)
         print(f"[+] Retrieved {len(formatted_results)} relevant items.")
         return formatted_results
 
 if __name__ == "__main__":
-    # Example initialization (mocked or dependent on existing DB)
     print("MultimodalRetriever module loaded.")

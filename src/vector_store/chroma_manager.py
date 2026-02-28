@@ -1,34 +1,30 @@
 import os
-import chromadb
-from chromadb.config import Settings
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
 
 # Load environment variables
 load_dotenv()
 
 class ChromaManager:
-    def __init__(self, persist_directory: str = None, collection_name: str = "multimodal_rag"):
+    def __init__(self, persist_directory: str = None, collection_name: str = "multimodal_rag", embedding_function: Any = None):
         """
-        Initializes the ChromaDB manager.
-        :param persist_directory: Path to the local directory for persistence.
-        :param collection_name: Name of the collection to use.
+        Initializes the ChromaDB manager using LangChain's wrapper.
         """
         base_persist = persist_directory or os.getenv("VECTOR_DB_PATH", "./data/chroma")
-        self.persist_directory = Path(base_persist)
+        self.persist_directory = str(Path(base_persist))
+        self.collection_name = collection_name
+        self.embedding_function = embedding_function # We'll pass our CLIP embedder here later
         
-        # Initialize Persistent Client (ChromaDB >= 0.4.x)
-        self.client = chromadb.PersistentClient(path=str(self.persist_directory))
-        
-        # Get or create the collection
-        # Note: CLIP embeddings are 512-dimensional for ViT-B-32
-        self.collection = self.client.get_or_create_collection(
-            name=collection_name,
-            metadata={"hnsw:space": "cosine"} # Using cosine similarity for CLIP
+        # Initialize LangChain Chroma client
+        self.vectorstore = Chroma(
+            collection_name=self.collection_name,
+            persist_directory=self.persist_directory,
+            embedding_function=self.embedding_function
         )
-        print(f"[+] ChromaDB initialized at {self.persist_directory}")
-        print(f"[+] Using collection: {collection_name}")
+        print(f"[+] LangChain-Chroma initialized at {self.persist_directory}")
 
     def add_embeddings(self, 
                        ids: List[str], 
@@ -42,40 +38,35 @@ class ChromaManager:
             return
             
         try:
-            # Check client heartbeat 
-            self.client.heartbeat()
-            
-            # Ensure embeddings are standard Python floats and not nested
+            # Ensure embeddings are standard Python floats
             casted_embeddings = []
             for emb in embeddings:
-                # If CLIP returns [[...]] (2D), flatten it to [...] (1D)
                 if isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], list):
                     emb = emb[0]
-                
                 casted_embeddings.append([float(v) for v in emb])
             
-            print(f"[*] Attempting to add {len(ids)} items to ChromaDB...", flush=True)
-            self.collection.add(
+            print(f"[*] Adding {len(ids)} items to LangChain-Chroma...", flush=True)
+            self.vectorstore.add_embeddings(
                 ids=ids,
                 embeddings=casted_embeddings,
                 metadatas=metadatas,
-                documents=documents
+                texts=documents
             )
-            print(f"[+] Successfully added {len(ids)} items. New total count: {self.get_count()}", flush=True)
+            print(f"[+] Added {len(ids)} items. Total: {self.get_count()}", flush=True)
         except Exception as e:
-            print(f"[!] Critical error in ChromaManager.add_embeddings: {e}", flush=True)
-            import traceback
-            traceback.print_exc()
+            print(f"[!] Critical error in ChromaManager.add_embeddings: {e}")
 
     def query(self, 
               query_embeddings: List[List[float]], 
               n_results: int = 5, 
               where: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Queries the collection with given embeddings.
+        Native query support for multimodal embeddings.
         """
         try:
-            results = self.collection.query(
+            # LangChain Chroma doesn't have a direct 'query_by_embedding' that returns the same format as raw chroma
+            # But we can access the underlying collection
+            results = self.vectorstore._collection.query(
                 query_embeddings=query_embeddings,
                 n_results=n_results,
                 where=where,
@@ -87,10 +78,7 @@ class ChromaManager:
             return {}
 
     def get_count(self) -> int:
-        """
-        Returns the number of items in the collection.
-        """
-        return self.collection.count()
+        return self.vectorstore._collection.count()
 
 if __name__ == "__main__":
     # Quick sanity check

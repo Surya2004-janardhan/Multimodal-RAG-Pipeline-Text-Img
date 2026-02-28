@@ -3,6 +3,7 @@ from PIL import Image
 from typing import List, Union
 from sentence_transformers import SentenceTransformer
 from pathlib import Path
+from langchain_core.embeddings import Embeddings
 
 class MultimodalEmbedder:
     def __init__(self, model_name: str = "clip-ViT-B-32"):
@@ -47,6 +48,19 @@ class MultimodalEmbedder:
         # SentenceTransformer supports encoding PIL images directly for CLIP models
         embeddings = self.model.encode(images, convert_to_tensor=True, show_progress_bar=False)
         return embeddings
+
+class LangChainCLIPEmbeddings(Embeddings):
+    def __init__(self, model_name: str = "clip-ViT-B-32"):
+        self.embedder = MultimodalEmbedder(model_name)
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        # Map back to MultimodalEmbedder logic
+        embeddings = self.embedder.encode_text(texts)
+        return embeddings.cpu().detach().tolist()
+
+    def embed_query(self, text: str) -> List[float]:
+        embedding = self.embedder.encode_text(text)
+        return embedding.cpu().detach().tolist()[0]
 
 if __name__ == "__main__":
     # Quick sanity check

@@ -3,7 +3,7 @@ import glob
 from dotenv import load_dotenv
 from src.ingestion.document_parser import PDFParser
 from src.ingestion.image_processor import ImageProcessor
-from src.embeddings.model_loader import MultimodalEmbedder
+from src.embeddings.model_loader import MultimodalEmbedder, LangChainCLIPEmbeddings
 from src.vector_store.chroma_manager import ChromaManager
 
 # Load environment variables
@@ -13,9 +13,10 @@ def debug_ingest():
     print("--- STARTING FOREGROUND DEBUG INGESTION ---", flush=True)
     
     # 1. Initialize Components
-    print("[*] Initializing components...", flush=True)
-    embedder = MultimodalEmbedder()
-    vector_store = ChromaManager()
+    print("[*] Initializing components (LangChain Mode)...", flush=True)
+    clip_lc = LangChainCLIPEmbeddings()
+    embedder = clip_lc.embedder
+    vector_store = ChromaManager(embedding_function=clip_lc)
     pdf_parser = PDFParser()
     image_processor = ImageProcessor()
     

@@ -9,6 +9,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from unstructured.partition.pdf import partition_pdf
 
+from src.ingestion.image_processor import ImageProcessor
+
 # Load environment variables
 load_dotenv()
 
@@ -21,6 +23,9 @@ class PDFParser:
         base_output = output_dir or os.getenv("PROCESSED_DATA_PATH", "./data/processed")
         self.output_dir = Path(base_output)
         self.image_dir = self.output_dir / "images"
+        
+        # Initialize OCR for image enrichment
+        self.image_processor = ImageProcessor()
         
         # Ensure directories exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -109,16 +114,23 @@ class PDFParser:
                     
                     print(f"  - Extracted valid image: {img_filename} (Size: {len(image_bytes)//1024}KB, Brightness: {mean_brightness:.1f})", flush=True)
                     
+                    # ENRICHMENT: Run OCR on the image to make it text-searchable
+                    ocr_text = self.image_processor.ocr_only(img_path)
+                    if ocr_text:
+                        print(f"    [OCR] Extracted: {ocr_text[:50]}...", flush=True)
+
                     chunks.append({
                         "doc_id": doc_id,
                         "page": page_num + 1,
                         "type": "image",
                         "content": str(img_path),
+                        "ocr_text": ocr_text,
                         "metadata": {
                             "source": pdf_path,
                             "page_number": page_num + 1,
                             "content_type": "image",
-                            "image_path": str(img_path)
+                            "image_path": str(img_path),
+                            "ocr_text": ocr_text
                         }
                     })
             doc.close()

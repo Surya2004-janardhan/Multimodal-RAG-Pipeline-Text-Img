@@ -1,26 +1,35 @@
 import os
-import requests
-import json
 import base64
 from typing import List, Dict, Any
 from pathlib import Path
 from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 # Load environment variables
 load_dotenv()
 
 class MultimodalGenerator:
-    def __init__(self, model_name: str = "llava"):
+    def __init__(self, model_name: str = "gemini-1.5-flash"):
         """
-        Initializes the generator using Ollama.
+        Initializes the generator using Gemini via LangChain.
         """
-        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.api_key = os.getenv("GOOGLE_API_KEY")
         self.model_name = model_name
-        print(f"[+] Generator initialized for model: {self.model_name} at {self.base_url}")
+        
+        if not self.api_key:
+            print("[!] Warning: GOOGLE_API_KEY not found in environment.")
+            
+        self.llm = ChatGoogleGenerativeAI(
+            model=self.model_name,
+            google_api_key=self.api_key,
+            temperature=0.1
+        )
+        print(f"[+] Generator initialized for Gemini: {self.model_name}")
 
     def _encode_image_to_base64(self, image_path: str) -> str:
         """
-        Converts an image file to a base64 string for Ollama.
+        Converts an image file to a base64 string.
         """
         try:
             with open(image_path, "rb") as image_file:
@@ -31,13 +40,12 @@ class MultimodalGenerator:
 
     def generate_answer(self, query: str, context_items: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Generates a visually grounded answer using LLaVA via Ollama.
+        Generates a grounded answer using Gemini via LangChain.
         """
-        print(f"[*] Generating answer for query: '{query}'")
+        print(f"[*] Generating answer with Gemini for query: '{query}'")
         
-        # 1. Separate context into text and images
         text_context = []
-        images_base64 = []
+        image_contents = []
         source_refs = []
         
         for item in context_items:
@@ -49,13 +57,21 @@ class MultimodalGenerator:
             elif metadata["content_type"] == "image":
                 img_b64 = self._encode_image_to_base64(metadata["image_path"])
                 if img_b64:
-                    images_base64.append(img_b64)
+                    # LangChain Google GenAI expects image content in a specific format
+                    image_contents.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
+                    })
                     text_context.append(f"Image Source ({metadata['source']}, Page {metadata['page_number']}) provided in visual context.")
 
-        # 2. Construct the prompt
         context_str = "\n\n".join(text_context)
-        prompt = f"""You are an advanced AI assistant that reasons over multimodal documents.
-Below is relevant context (text, tables, and images) retrieved from various documents.
+        
+        # Build the message content for Gemini
+        message_elements = [
+            {
+                "type": "text",
+                "text": f"""You are an advanced Multimodal Financial Analyst.
+Below is a mix of Text, Structured Tables, and Images retrieved from relevant documents.
 
 CONTEXT:
 {context_str}
@@ -63,43 +79,28 @@ CONTEXT:
 USER QUERY:
 {query}
 
-INSTRUCTIONS:
-1. Answer the query accurately based ON THE PROVIDED CONTEXT AND IMAGES.
-2. Be "visually grounded": If your answer is based on a chart, diagram, or image, explicitly say "As seen in the image on page X of document Y...".
-3. Use a professional and clear tone.
-4. If the context doesn't contain the answer, say you don't have enough information.
-
-ANSWER:"""
-
-        # 3. Call Ollama API
-        payload = {
-            "model": self.model_name,
-            "prompt": prompt,
-            "images": images_base64,
-            "stream": False,
-            "options": {
-                "temperature": 0.2, # Lower temperature for factual accuracy
+CRITICAL INSTRUCTIONS:
+1. PRE-ANALYSIS: Analyze provided images/tables for relevant numbers or trends.
+2. VISUAL GROUNDING: Cite specific images or tables explicitly (e.g., "According to the chart on page 4...").
+3. ACCURACY: If information is missing, say you don't have enough detail.
+4. FORMAT: Use structured bullet points for data summaries."""
             }
-        }
-
+        ]
+        # Append all identified images
+        message_elements.extend(image_contents)
+        
         try:
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json=payload,
-                timeout=30 # 30s timeout for local VLM
-            )
-            response.raise_for_status()
-            result = response.json()
+            message = HumanMessage(content=message_elements)
+            response = self.llm.invoke([message])
             
             return {
-                "answer": result.get("response", "No response from model."),
+                "answer": response.content,
                 "sources": source_refs
             }
-            
-        except requests.exceptions.RequestException as e:
-            print(f"[!] Error communicating with Ollama: {e}")
+        except Exception as e:
+            print(f"[!] Error generating with Gemini: {e}")
             return {
-                "answer": f"Error: Could not connect to the Vision-LLM (Ollama). Ensure it is running at {self.base_url}.",
+                "answer": f"Error: Gemini failed to generate a response. {str(e)}",
                 "sources": source_refs
             }
 

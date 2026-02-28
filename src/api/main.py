@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from src.ingestion.document_parser import PDFParser
 from src.ingestion.image_processor import ImageProcessor
-from src.embeddings.model_loader import MultimodalEmbedder
+from src.embeddings.model_loader import MultimodalEmbedder, LangChainCLIPEmbeddings
 from src.vector_store.chroma_manager import ChromaManager
 from src.retrieval.retriever import MultimodalRetriever
 from src.generation.generator import MultimodalGenerator
@@ -16,12 +16,16 @@ from src.generation.generator import MultimodalGenerator
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(title="Multimodal RAG API", version="1.0.0")
+app = FastAPI(title="Multimodal RAG API (LangChain + Gemini)", version="1.1.0")
 
 # --- Initialize Project Components ---
-# We initialize these globally so they are loaded once
-embedder = MultimodalEmbedder()
-vector_store = ChromaManager()
+# Using LangChain-compatible embedding wrapper
+clip_lc = LangChainCLIPEmbeddings()
+embedder = clip_lc.embedder # Keep access to the raw embedder for internal tasks
+
+# Initialize Vector Store with LangChain wrapper
+vector_store = ChromaManager(embedding_function=clip_lc)
+
 retriever = MultimodalRetriever(embedder, vector_store)
 generator = MultimodalGenerator()
 pdf_parser = PDFParser()
