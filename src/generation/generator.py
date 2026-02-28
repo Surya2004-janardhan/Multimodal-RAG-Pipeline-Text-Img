@@ -70,34 +70,42 @@ class MultimodalGenerator:
 
         context_str = "\n\n".join(text_context)
         
-        prompt_text = f"""You are an extremely advanced Multimodal AI Researcher.
-Below is a mix of Text, Tables, and IMAGE OCR DATA retrieved from papers.
+        # --- ULTIMATE RESEARCH PROMPT & GUARDRAILS ---
+        system_prompt = SystemMessage(content="""You are an elite AI Researcher specializing in analyzing seminal ML papers. 
+Your core mission is to provide accurate, grounded, and technical answers based ONLY on the provided context.
 
-CONTEXT:
+GUARDRAILS:
+1. OFF-TOPIC RULE: If the user asks anything NOT related to the provided research papers (e.g., life advice, coding general apps, recipes, sports), you MUST respond with: "I apologize, but my expertise is currently limited to the research papers in my database. I cannot answer questions outside of this scope."
+2. NO HALLUCINATION: If the information is not in the context, state it clearly. Do not make up facts.
+3. CITATION: Always cite the source paper name and page number.
+""")
+
+        human_prompt = f"""CONTEXT FROM RESEARCH PAPERS (Text & Image OCR):
 {context_str}
 
 USER QUERY:
 {query}
 
-INSTRUCTIONS:
-1. FOCUS: Pay ultra-close attention to the numbers and technical terms in the Image OCR data.
-2. CITATION: Cite specific pages and sources.
-3. LOGIC: If the query is about a diagram, use the OCR text provided in the context to reconstruct the logic.
-4. TONE: Professional and highly technical.
+TECHNICAL INSTRUCTIONS:
+- Analyze the Image OCR carefully for specialized symbols, variables, and diagram components.
+- Compare findings across multiple sources if relevant.
+- Provide a structured, expert-level response. Use LaTeX for math if necessary.
 
 Final Response:"""
 
-        # Build message elements
-        message_elements = [{"type": "text", "text": prompt_text}]
+        # Build message elements for the HumanMessage
+        human_message_elements = [{"type": "text", "text": human_prompt}]
         
-        # Only add images if the model supports it. Many Llama models on Groq are text-only.
-        # However, we'll add them and let the API decide or fallback to OCR.
+        # Only add images if the model supports it. 
         if "vision" in self.model_name.lower():
-            message_elements.extend(image_contents)
+            human_message_elements.extend(image_contents)
         
         try:
-            message = HumanMessage(content=message_elements)
-            response = self.llm.invoke([message])
+            messages = [
+                system_prompt,
+                HumanMessage(content=human_message_elements)
+            ]
+            response = self.llm.invoke(messages)
             
             return {
                 "answer": response.content,
