@@ -1,6 +1,7 @@
 setup:
-  - uv venv
-  - .\venv\Scripts\activate
-  - uv pip install -r requirements.txt
+  - python -m venv .venv
+  - .venv\Scripts\pip install -r requirements.txt
+  - echo "GROQ_API_KEY=your_key_here" > .env
 test:
-  - pytest tests/test_integrated.py
+  - .venv\Scripts\python.exe -m pytest tests/test_api.py
+  - .venv\Scripts\python.exe -c "import json; nb = json.load(open('evaluation.ipynb', 'r', encoding='utf-8')); print('Evaluation notebook is valid JSON')"
