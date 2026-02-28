@@ -21,16 +21,16 @@ def run_test(name, payload):
         print(f"CONNECTION ERROR: {e}")
 
 if __name__ == "__main__":
-    # Test cases
+    # Test cases for ML/AI Papers
     tests = [
-        ("Financial Trends", {"query": "What are the revenue trends for TCS in 2025?", "n_results": 3}),
-        ("Sustainability", {"query": "What is the TCS carbon footprint strategy?", "n_results": 3}),
-        ("Image Analysis", {"query": "Describe the tables or charts found in the Fact Sheets.", "n_results": 3}),
+        ("Transformer Logic", {"query": "Explain the architecture of the Transformer model as described in 'Attention Is All You Need'. What are the key components?", "n_results": 5}),
+        ("Optimization details", {"query": "How is the Adam optimizer different from standard SGD? Reference the Kingma and Ba paper.", "n_results": 3}),
+        ("Multimodal/Vision", {"query": "What are the main results or charts mentioned in the ImageNet 2014 paper?", "n_results": 5}),
+        ("Dropout/Overfitting", {"query": "Explain how dropout prevents overfitting according to Srivastava et al. (2014).", "n_results": 3}),
         ("Ambiguous/Edge Case", {"query": "!!!", "n_results": 1}),
-        ("Empty Query", {"query": "", "n_results": 1}),
     ]
 
-    print("=== STARTING MANUAL VERIFICATION ===\n")
+    print("=== STARTING ML PAPER VERIFICATION ===\n")
     for name, payload in tests:
         run_test(name, payload)
     print("\n=== VERIFICATION COMPLETE ===")
