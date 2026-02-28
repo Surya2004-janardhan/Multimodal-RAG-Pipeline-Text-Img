@@ -16,7 +16,7 @@ from src.generation.generator import MultimodalGenerator
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(title="Multimodal RAG API (LangChain + Gemini)", version="1.1.0")
+app = FastAPI(title="Multimodal RAG API (LangChain + Groq)", version="1.1.0")
 
 # --- Initialize Project Components ---
 # Using LangChain-compatible embedding wrapper
