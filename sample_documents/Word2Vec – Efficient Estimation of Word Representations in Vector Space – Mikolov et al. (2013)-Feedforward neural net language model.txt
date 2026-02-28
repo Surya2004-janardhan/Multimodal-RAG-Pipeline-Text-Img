@@ -1,0 +1,42 @@
+2.1 Feedforward Neural Net Language Model (NNLM)
+The probabilistic feedforward neural network language model has been proposed in [1]. It consists
+of input, projection, hidden and output layers. At the input layer, N previous words are encoded
+using 1-of-V coding, where V is size of the vocabulary. The input layer is then projected to a
+projection layer P that has dimensionality N × D, using a shared projection matrix. As only N
+inputs are active at any given time, composition of the projection layer is a relatively cheap operation.
+The NNLM architecture becomes complex for computation between the projection and the hidden
+layer, as values in the projection layer are dense. For a common choice of N = 10, the size of the
+projection layer (P ) might be 500 to 2000, while the hidden layer size H is typically 500 to 1000
+units. Moreover, the hidden layer is used to compute probability distribution over all the words in the
+vocabulary, resulting in an output layer with dimensionality V . Thus, the computational complexity
+per each training example is
+Q = N × D + N × D × H + H × V, (2)
+where the dominating term is H × V . However, several practical solutions were proposed for
+avoiding it; either using hierarchical versions of the softmax [25, 23, 18], or avoiding normalized
+models completely by using models that are not normalized during training [4, 9]. With binary tree
+representations of the vocabulary, the number of output units that need to be evaluated can go down
+to around log2(V ). Thus, most of the complexity is caused by the term N × D × H.
+In our models, we use hierarchical softmax where the vocabulary is represented as a Huffman binary
+tree. This follows previous observations that the frequency of words works well for obtaining classes
+in neural net language models [16]. Huffman trees assign short binary codes to frequent words, and
+this further reduces the number of output units that need to be evaluated: while balanced binary tree
+would require log2(V ) outputs to be evaluated, the Huffman tree based hierarchical softmax requires
+only about log2(U nigram perplexity(V )). For example when the vocabulary size is one million
+words, this results in about two times speedup in evaluation. While this is not crucial speedup for
+neural network LMs as the computational bottleneck is in the N ×D ×H term, we will later propose
+architectures that do not have hidden layers and thus depend heavily on the efficiency of the softmax
+normalization.
+2.2 Recurrent Neural Net Language Model (RNNLM)
+Recurrent neural network based language model has been proposed to overcome certain limitations
+of the feedforward NNLM, such as the need to specify the context length (the order of the model N ),
+and because theoretically RNNs can efficiently represent more complex patterns than the shallow
+neural networks [15, 2]. The RNN model does not have a projection layer; only input, hidden and
+output layer. What is special for this type of model is the recurrent matrix that connects hidden
+layer to itself, using time-delayed connections. This allows the recurrent model to form some kind
+of short term memory, as information from the past can be represented by the hidden layer state that
+gets updated based on the current input and the state of the hidden layer in the previous time step.
+The complexity per training example of the RNN model is
+Q = H × H + H × V, (3)
+where the word representations D have the same dimensionality as the hidden layer H. Again, the
+term H × V can be efficiently reduced to H × log2(V ) by using hierarchical softmax. Most of the
+complexity then comes from H × H.
