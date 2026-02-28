@@ -1,12 +1,13 @@
 venv/
+.venv/
 plan.md
 task-requirements.txt
-
 .env
-
-DATA/
-
-gitignore is case senstive
-
-
+data/
+data/chroma
+data/processed
 __pycache__/
+*.pyc
+.ipynb_checkpoints/
+uv.lock
+test_results.txt
