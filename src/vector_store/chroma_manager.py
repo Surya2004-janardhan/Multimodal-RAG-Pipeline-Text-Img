@@ -46,11 +46,11 @@ class ChromaManager:
                 casted_embeddings.append([float(v) for v in emb])
             
             print(f"[*] Adding {len(ids)} items to LangChain-Chroma...", flush=True)
-            self.vectorstore.add_embeddings(
+            self.vectorstore._collection.add(
                 ids=ids,
                 embeddings=casted_embeddings,
                 metadatas=metadatas,
-                texts=documents
+                documents=documents
             )
             print(f"[+] Added {len(ids)} items. Total: {self.get_count()}", flush=True)
         except Exception as e:
